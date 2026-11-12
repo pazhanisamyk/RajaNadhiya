@@ -30,7 +30,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Blessing not found." }, { status: 404 });
     }
     return NextResponse.json({ blessing: updated });
-  } catch {
+  } catch (err) {
+    console.error("[api/admin/blessings PATCH]", err);
     return NextResponse.json(
       { error: "Unable to update blessing." },
       { status: 500 }
@@ -45,10 +46,18 @@ export async function DELETE(
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  const removed = await deleteBlessing(context.params.id);
-  if (!removed) {
-    return NextResponse.json({ error: "Blessing not found." }, { status: 404 });
+  try {
+    const removed = await deleteBlessing(context.params.id);
+    if (!removed) {
+      return NextResponse.json({ error: "Blessing not found." }, { status: 404 });
+    }
+    return NextResponse.json({ deleted: true });
+  } catch (err) {
+    console.error("[api/admin/blessings DELETE]", err);
+    return NextResponse.json(
+      { error: "Unable to delete blessing." },
+      { status: 500 }
+    );
   }
-  return NextResponse.json({ deleted: true });
 }
 

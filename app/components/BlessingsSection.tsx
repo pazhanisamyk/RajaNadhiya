@@ -71,26 +71,54 @@ export function BlessingsSection({
 
   useEffect(() => {
     setMounted(true);
+    let localList: BlessingRecord[] = [];
     try {
       const raw = window.localStorage.getItem(SENDER_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as unknown;
         if (Array.isArray(parsed)) {
-          setPersonalWishes(
-            parsed.filter(
-              (item): item is BlessingRecord =>
-                Boolean(item) &&
-                typeof item === "object" &&
-                typeof (item as BlessingRecord).id === "string" &&
-                typeof (item as BlessingRecord).name === "string" &&
-                typeof (item as BlessingRecord).message === "string"
-            )
+          localList = parsed.filter(
+            (item): item is BlessingRecord =>
+              Boolean(item) &&
+              typeof item === "object" &&
+              typeof (item as BlessingRecord).id === "string" &&
+              typeof (item as BlessingRecord).name === "string" &&
+              typeof (item as BlessingRecord).message === "string"
           );
         }
       }
     } catch {
       // Ignore storage read errors in restricted browsers
     }
+
+    if (localList.length === 0) return;
+
+    let cancelled = false;
+    const ids = localList.map((item) => item.id).slice(0, 20);
+    fetch(`/api/blessings?ids=${encodeURIComponent(ids.join(","))}`, {
+      cache: "no-store",
+    })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as { blessings?: BlessingRecord[] };
+        if (cancelled || !Array.isArray(data.blessings)) return;
+        setPersonalWishes(data.blessings);
+        try {
+          window.localStorage.setItem(
+            SENDER_STORAGE_KEY,
+            JSON.stringify(data.blessings)
+          );
+        } catch {
+          // Ignore storage write errors in restricted browsers
+        }
+      })
+      .catch(() => {
+        // Keep page quiet if verification request fails transiently
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

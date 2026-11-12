@@ -39,6 +39,8 @@ interface AdminDashboardProps {
   initialAuthenticated: boolean;
   initialBlessings: BlessingRecord[];
   initialSettings: SiteSettings;
+  storageMode?: "mongodb-atlas" | "mongodb-local";
+  storageLabel?: string;
 }
 
 type AdminTab = "blessings" | "settings" | "overview";
@@ -63,6 +65,8 @@ export function AdminDashboard({
   initialAuthenticated,
   initialBlessings,
   initialSettings,
+  storageMode = "mongodb-local",
+  storageLabel = "Local MongoDB (127.0.0.1:27017)",
 }: AdminDashboardProps) {
   const [authenticated, setAuthenticated] = useState(initialAuthenticated);
   const [passcode, setPasscode] = useState("");
@@ -100,7 +104,7 @@ export function AdminDashboard({
     }, 2800);
   }, []);
 
-  const loadAdminData = useCallback(async () => {
+  const loadAdminData = useCallback(async (): Promise<"ok" | "unauthorized" | "error"> => {
     setRefreshing(true);
     try {
       const [bRes, sRes] = await Promise.all([
@@ -110,7 +114,7 @@ export function AdminDashboard({
 
       if (bRes.status === 401 || sRes.status === 401) {
         setAuthenticated(false);
-        return;
+        return "unauthorized";
       }
 
       if (bRes.ok) {
@@ -121,10 +125,18 @@ export function AdminDashboard({
         const sJson = (await sRes.json()) as { settings: SiteSettings };
         setSettings(sJson.settings);
       }
+      if (!bRes.ok || !sRes.ok) {
+        flashBanner("Could not load some admin data.");
+        return "error";
+      }
+      return "ok";
+    } catch {
+      flashBanner("Connection error while refreshing admin data.");
+      return "error";
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [flashBanner]);
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -155,7 +167,10 @@ export function AdminDashboard({
 
       setAuthenticated(true);
       setPasscode("");
-      await loadAdminData();
+      const loaded = await loadAdminData();
+      if (loaded === "unauthorized") {
+        setAuthError("Session cookie was not kept. Check browser cookie settings and try again.");
+      }
     } catch {
       setAuthError("Unable to reach the server. Please try again.");
     } finally {
@@ -196,10 +211,15 @@ export function AdminDashboard({
               ? "Marked as featured blessing"
               : "Removed featured highlight"
             : !currentValue
-              ? "Blessing is now visible on site"
-              : "Blessing hidden from public view"
+              ? "Blessing is now public on site"
+              : "Blessing restricted to sender & admin"
         );
+      } else {
+        const errData = (await res.json().catch(() => null)) as { error?: string } | null;
+        flashBanner(errData?.error || "Could not update blessing.");
       }
+    } catch {
+      flashBanner("Connection error while updating blessing.");
     } finally {
       setBusyId(null);
     }
@@ -227,6 +247,10 @@ export function AdminDashboard({
           message: editDraft.message.trim(),
         }),
       });
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = (await res.json()) as { blessing: BlessingRecord };
         setBlessings((prev) =>
@@ -234,7 +258,12 @@ export function AdminDashboard({
         );
         setEditingId(null);
         flashBanner("Blessing updated");
+      } else {
+        const errData = (await res.json().catch(() => null)) as { error?: string } | null;
+        flashBanner(errData?.error || "Could not update blessing.");
       }
+    } catch {
+      flashBanner("Connection error while saving blessing.");
     } finally {
       setBusyId(null);
     }
@@ -246,11 +275,20 @@ export function AdminDashboard({
       const res = await fetch(`/api/admin/blessings/${id}`, {
         method: "DELETE",
       });
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         setBlessings((prev) => prev.filter((item) => item.id !== id));
         setConfirmDeleteId(null);
-        flashBanner("Blessing deleted from data/blessings.json");
+        flashBanner("Blessing deleted from MongoDB");
+      } else {
+        const errData = (await res.json().catch(() => null)) as { error?: string } | null;
+        flashBanner(errData?.error || "Could not delete blessing.");
       }
+    } catch {
+      flashBanner("Connection error while deleting blessing.");
     } finally {
       setBusyId(null);
     }
@@ -274,13 +312,22 @@ export function AdminDashboard({
           featured: newWish.featured,
         }),
       });
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = (await res.json()) as { blessing: BlessingRecord };
         setBlessings((prev) => [data.blessing, ...prev]);
         setNewWish({ name: "", message: "", featured: false });
         setAddOpen(false);
-        flashBanner("Blessing added and saved to JSON");
+        flashBanner("Blessing added and saved to MongoDB");
+      } else {
+        const errData = (await res.json().catch(() => null)) as { error?: string } | null;
+        flashBanner(errData?.error || "Could not save blessing.");
       }
+    } catch {
+      flashBanner("Connection error while adding blessing.");
     } finally {
       setAdding(false);
     }
@@ -302,10 +349,13 @@ export function AdminDashboard({
       if (res.ok) {
         const data = (await res.json()) as { settings: SiteSettings };
         setSettings(data.settings);
-        flashBanner("Site settings saved to data/site-settings.json");
+        flashBanner("Site settings saved to MongoDB");
       } else {
-        flashBanner("Could not save site settings.");
+        const errData = (await res.json().catch(() => null)) as { error?: string } | null;
+        flashBanner(errData?.error || "Could not save site settings.");
       }
+    } catch {
+      flashBanner("Connection error while saving settings.");
     } finally {
       setSavingSettings(false);
     }
@@ -497,7 +547,11 @@ export function AdminDashboard({
           <div className="admin-stat-card">
             <span className="admin-stat-label">Total Blessings</span>
             <strong className="admin-stat-value">{stats.total}</strong>
-            <span className="admin-stat-hint">Saved in blessings.json</span>
+            <span className="admin-stat-hint">
+              {storageMode === "mongodb-atlas"
+                ? "Saved in MongoDB Atlas"
+                : "Saved in Local MongoDB"}
+            </span>
           </div>
           <div className="admin-stat-card">
             <span className="admin-stat-label">Public on Site</span>
@@ -1097,11 +1151,8 @@ export function AdminDashboard({
                     <dd>{fullVenue}</dd>
                   </div>
                   <div>
-                    <dt>Local JSON Files</dt>
-                    <dd>
-                      <code>data/blessings.json</code> &amp;{" "}
-                      <code>data/site-settings.json</code>
-                    </dd>
+                    <dt>Database Storage</dt>
+                    <dd>{storageLabel}</dd>
                   </div>
                 </dl>
                 <a

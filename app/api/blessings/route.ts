@@ -1,17 +1,41 @@
 import { NextResponse } from "next/server";
-import { addBlessing, readBlessings, readSiteSettings } from "@/app/lib/dataStore";
+import {
+  addBlessing,
+  findBlessingsByIds,
+  readBlessings,
+  readSiteSettings,
+} from "@/app/lib/dataStore";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const [blessings, settings] = await Promise.all([
-    readBlessings(),
-    readSiteSettings(),
-  ]);
-  const visible = settings.showPublicBlessings
-    ? blessings.filter((item) => item.approved)
-    : [];
-  return NextResponse.json({ blessings: visible });
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get("ids");
+    if (idsParam !== null) {
+      const ids = idsParam
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+      const owned = await findBlessingsByIds(ids);
+      return NextResponse.json({ blessings: owned });
+    }
+
+    const [blessings, settings] = await Promise.all([
+      readBlessings(),
+      readSiteSettings(),
+    ]);
+    const visible = settings.showPublicBlessings
+      ? blessings.filter((item) => item.approved)
+      : [];
+    return NextResponse.json({ blessings: visible });
+  } catch (err) {
+    console.error("[api/blessings GET]", err);
+    return NextResponse.json(
+      { error: "Unable to load blessings right now." },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -41,7 +65,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ blessing: record }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api/blessings POST]", err);
     return NextResponse.json(
       { error: "Unable to save blessing right now." },
       { status: 500 }

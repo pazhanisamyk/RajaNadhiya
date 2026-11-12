@@ -11,26 +11,47 @@ export const ADMIN_COOKIE_NAME = "rn_admin_session";
 const SECRET_FILE = path.join(process.cwd(), "data", ".admin-secret");
 const DEFAULT_LOCAL_PASSCODE = "RN2026";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const FALLBACK_KEY_DOMAIN = "rn-engagement-admin-session-key-v1";
 
 export function getAdminPasscode(): string {
   return process.env.ADMIN_PASSCODE?.trim() || DEFAULT_LOCAL_PASSCODE;
+}
+
+function getStatelessFallbackSecret(): string {
+  return createHmac("sha256", FALLBACK_KEY_DOMAIN)
+    .update(getAdminPasscode())
+    .digest("hex");
 }
 
 async function getSigningSecret(): Promise<string> {
   if (process.env.ADMIN_SECRET?.trim()) {
     return process.env.ADMIN_SECRET.trim();
   }
+
+  // Never rely on local disk secrets in production or serverless environments.
+  if (
+    process.env.NODE_ENV === "production" ||
+    Boolean(process.env.NETLIFY) ||
+    Boolean(process.env.VERCEL)
+  ) {
+    return getStatelessFallbackSecret();
+  }
+
   try {
     const existing = (await readFile(SECRET_FILE, "utf8")).trim();
     if (existing.length >= 32) return existing;
   } catch {
-    // Generate one on first use.
+    // Generate one on first use locally.
   }
 
   const generated = randomBytes(32).toString("hex");
-  await mkdir(path.dirname(SECRET_FILE), { recursive: true });
-  await writeFile(SECRET_FILE, generated + "\n", "utf8");
-  return generated;
+  try {
+    await mkdir(path.dirname(SECRET_FILE), { recursive: true });
+    await writeFile(SECRET_FILE, generated + "\n", "utf8");
+    return generated;
+  } catch {
+    return getStatelessFallbackSecret();
+  }
 }
 
 function safeEqual(a: string, b: string): boolean {

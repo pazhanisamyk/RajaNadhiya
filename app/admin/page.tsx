@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { AdminDashboard } from "../components/AdminDashboard";
 import { isAdminAuthenticated } from "../lib/adminAuth";
-import { readBlessings, readSiteSettings } from "../lib/dataStore";
+import {
+  getStorageInfo,
+  readBlessings,
+  readSiteSettings,
+} from "../lib/dataStore";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +20,21 @@ export default async function AdminPage() {
     readSiteSettings(),
   ]);
 
-  const blessings = authenticated ? await readBlessings() : [];
+  const blessings = authenticated
+    ? await readBlessings().catch((err) => {
+        console.error("[admin SSR] readBlessings failed:", err);
+        return [];
+      })
+    : [];
+  const storageInfo = getStorageInfo();
 
   return (
     <AdminDashboard
       initialAuthenticated={authenticated}
       initialBlessings={blessings}
       initialSettings={settings}
+      storageMode={storageInfo.mode}
+      storageLabel={storageInfo.label}
     />
   );
 }

@@ -5,7 +5,10 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [blessings, settings] = await Promise.all([
-    readBlessings(),
+    readBlessings().catch((err) => {
+      console.error("[home SSR] readBlessings failed:", err);
+      return [];
+    }),
     readSiteSettings(),
   ]);
 

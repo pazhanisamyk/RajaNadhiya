@@ -8,17 +8,25 @@ export async function GET() {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  const blessings = await readBlessings();
-  const todayPrefix = new Date().toISOString().slice(0, 10);
-  const stats = {
-    total: blessings.length,
-    approved: blessings.filter((b) => b.approved).length,
-    hidden: blessings.filter((b) => !b.approved).length,
-    featured: blessings.filter((b) => b.featured).length,
-    today: blessings.filter((b) => b.createdAt.startsWith(todayPrefix)).length,
-  };
+  try {
+    const blessings = await readBlessings();
+    const todayPrefix = new Date().toISOString().slice(0, 10);
+    const stats = {
+      total: blessings.length,
+      approved: blessings.filter((b) => b.approved).length,
+      hidden: blessings.filter((b) => !b.approved).length,
+      featured: blessings.filter((b) => b.featured).length,
+      today: blessings.filter((b) => b.createdAt.startsWith(todayPrefix)).length,
+    };
 
-  return NextResponse.json({ blessings, stats });
+    return NextResponse.json({ blessings, stats });
+  } catch (err) {
+    console.error("[api/admin/blessings GET]", err);
+    return NextResponse.json(
+      { error: "Unable to load blessings." },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
