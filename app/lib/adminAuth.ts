@@ -9,7 +9,7 @@ import { cookies } from "next/headers";
 
 export const ADMIN_COOKIE_NAME = "rn_admin_session";
 const SECRET_FILE = path.join(process.cwd(), "data", ".admin-secret");
-const DEFAULT_LOCAL_PASSCODE = "RN2026";
+const DEFAULT_LOCAL_PASSCODE = "";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const FALLBACK_KEY_DOMAIN = "rn-engagement-admin-session-key-v1";
 
@@ -62,7 +62,9 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function verifyPasscode(candidate: string): boolean {
-  return safeEqual(candidate.trim(), getAdminPasscode());
+  const expected = getAdminPasscode();
+  if (!expected) return false;
+  return safeEqual(candidate.trim(), expected);
 }
 
 export async function createSessionToken(): Promise<string> {

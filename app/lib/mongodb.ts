@@ -1,7 +1,7 @@
 import { MongoClient, type Db } from "mongodb";
 
 const DEFAULT_LOCAL_URI = "mongodb://127.0.0.1:27017";
-const DEFAULT_DB_NAME = "raja_nadhiya_engagement";
+const DEFAULT_DB_NAME = "engagement_db";
 
 const globalForMongo = globalThis as typeof globalThis & {
   _mongoClientPromise?: Promise<MongoClient>;
