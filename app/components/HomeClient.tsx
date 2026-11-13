@@ -24,6 +24,7 @@ import { Countdown } from "./Countdown";
 import { OrnamentDivider } from "./OrnamentDivider";
 import { PreviewModal, type ModalKind } from "./PreviewModal";
 import { Reveal } from "./Reveal";
+import { SiteLoader } from "./SiteLoader";
 import { VenueLocationSection } from "./VenueLocationSection";
 
 interface HomeClientProps {
@@ -122,6 +123,10 @@ export function HomeClient({
 
   return (
     <main id="top">
+      <SiteLoader
+        couple={initialSettings.couple}
+        date={initialSettings.dateNumeric}
+      />
       <AmbientPetals />
 
       <header className="topbar">

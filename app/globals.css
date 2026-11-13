@@ -3409,6 +3409,394 @@ main {
 }
 
 /* =========================================================
+   Site Opening Loader (RN Monogram Celebration)
+   ========================================================= */
+.site-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(ellipse at 50% 40%, #fffdf9 0%, #f7f1e6 68%, #ece0ce 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    opacity 0.5s var(--ease-luxury),
+    transform 0.5s var(--ease-luxury),
+    filter 0.5s var(--ease-luxury);
+}
+
+.site-loader-overlay.is-exiting {
+  opacity: 0;
+  transform: scale(1.04);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.loader-backdrop-glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(182, 138, 69, 0.22) 0%, rgba(234, 184, 186, 0.14) 42%, transparent 72%);
+  animation: loaderGlowPulse 3.2s ease-in-out infinite alternate;
+}
+
+.loader-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.loader-spark {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: loaderSparkFloat ease-in-out infinite alternate;
+}
+
+.loader-spark.s-1 {
+  width: 6px;
+  height: 6px;
+  top: 24%;
+  left: 28%;
+  background: rgba(182, 138, 69, 0.6);
+  box-shadow: 0 0 10px rgba(182, 138, 69, 0.8);
+  animation-duration: 2.8s;
+}
+
+.loader-spark.s-2 {
+  width: 8px;
+  height: 8px;
+  top: 32%;
+  right: 26%;
+  background: rgba(234, 184, 186, 0.7);
+  box-shadow: 0 0 12px rgba(234, 184, 186, 0.8);
+  animation-duration: 3.5s;
+  animation-delay: 0.4s;
+}
+
+.loader-spark.s-3 {
+  width: 5px;
+  height: 5px;
+  bottom: 28%;
+  left: 32%;
+  background: rgba(182, 138, 69, 0.5);
+  animation-duration: 2.4s;
+  animation-delay: 0.7s;
+}
+
+.loader-spark.s-4 {
+  width: 7px;
+  height: 7px;
+  bottom: 30%;
+  right: 30%;
+  background: rgba(124, 37, 38, 0.4);
+  animation-duration: 3.1s;
+  animation-delay: 0.2s;
+}
+
+.loader-spark.s-5 {
+  width: 5px;
+  height: 5px;
+  top: 18%;
+  right: 42%;
+  background: rgba(182, 138, 69, 0.7);
+  animation-duration: 2.6s;
+  animation-delay: 1s;
+}
+
+.loader-card {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
+  cursor: default;
+}
+
+.loader-emblem-wrap {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-halo-pulse {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(182, 138, 69, 0.35) 0%, rgba(234, 184, 186, 0.15) 50%, transparent 72%);
+  filter: blur(10px);
+  animation: loaderHaloBreath 2.4s ease-in-out infinite alternate;
+}
+
+.loader-orbit-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.loader-ring-spin {
+  transform-origin: center;
+  animation: loaderRingRotate 4.8s linear infinite;
+}
+
+.loader-ring-reverse {
+  transform-origin: center;
+  animation: loaderRingRotateRev 8.5s linear infinite;
+}
+
+.loader-logo-frame {
+  position: relative;
+  width: 98px;
+  height: 98px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: loaderLogoBreath 2.4s ease-in-out infinite alternate;
+}
+
+.loader-logo-img {
+  width: 86px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(124, 37, 38, 0.22));
+}
+
+.loader-shimmer-sweep {
+  position: absolute;
+  top: -50%;
+  left: -120%;
+  width: 60%;
+  height: 200%;
+  transform: rotate(32deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: loaderShimmerSweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.loader-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.loader-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.loader-sparkle-icon {
+  color: var(--gold);
+  animation: sparkFloat 2s ease-in-out infinite alternate;
+}
+
+.loader-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(26px, 6vw, 34px);
+  font-weight: 600;
+  color: var(--wine);
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(124, 37, 38, 0.08);
+}
+
+.loader-date-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.loader-line {
+  width: 32px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+}
+
+.loader-date {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2.2px;
+  color: var(--muted);
+}
+
+.loader-progress-box {
+  width: min(290px, 86%);
+  margin-top: 4px;
+}
+
+.loader-progress-track {
+  height: 3px;
+  width: 100%;
+  background: rgba(182, 138, 69, 0.18);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loader-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #b68a45 0%, #f3ddaa 65%, #7c2526 100%);
+  border-radius: 999px;
+  transition: width 0.08s linear;
+  position: relative;
+}
+
+.loader-progress-glow {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px #b68a45, 0 0 4px #fff;
+}
+
+.loader-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.loader-status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.loader-heart {
+  color: var(--wine);
+  animation: heartBeat 1.4s ease-in-out infinite;
+}
+
+.loader-percentage {
+  font-weight: 700;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.loader-skip-btn {
+  margin-top: 22px;
+  background: transparent;
+  border: 1px solid rgba(182, 138, 69, 0.32);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-luxury);
+}
+
+.loader-skip-btn:hover {
+  background: rgba(182, 138, 69, 0.12);
+  color: var(--wine);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+@keyframes loaderRingRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loaderRingRotateRev {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes loaderLogoBreath {
+  0% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes loaderHaloBreath {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0.95;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes loaderShimmerSweep {
+  0% {
+    left: -130%;
+  }
+  42% {
+    left: 140%;
+  }
+  100% {
+    left: 140%;
+  }
+}
+
+@keyframes loaderGlowPulse {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 0.95;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes loaderSparkFloat {
+  0% {
+    transform: translateY(0) scale(0.9);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-14px) scale(1.15);
+    opacity: 0.9;
+  }
+}
+
+/* =========================================================
    Reduced Motion Respect
    ========================================================= */
 @media (prefers-reduced-motion: reduce) {
