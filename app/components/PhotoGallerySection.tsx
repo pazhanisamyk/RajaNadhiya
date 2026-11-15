@@ -4,12 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 const GALLERY_IMAGES = [
-  "/assets/gallery/gallery_1.webp",
-  "/assets/gallery/gallery_2.jpg",
-  "/assets/gallery/gallery_3.jpg",
-  "/assets/gallery/gallery_4.jpg",
-  "/assets/gallery/gallery_5.jpg",
-  "/assets/gallery/gallery_6.webp",
+  "/assets/gallery/gallery_1.png",
+  "/assets/gallery/gallery_2.png",
+  "/assets/gallery/gallery_3.png",
+  "/assets/gallery/gallery_4.png",
+  "/assets/gallery/gallery_5.png",
+  "/assets/gallery/gallery_6.png",
+  "/assets/gallery/gallery_7.png",
+  "/assets/gallery/gallery_8.png",
+  "/assets/gallery/gallery_9.png",
+  "/assets/gallery/gallery_10.png",
 ];
 
 export function PhotoGallerySection() {
@@ -487,11 +491,10 @@ export function PhotoGallerySection() {
                         handlePrev();
                       }
                     }}
-                    className={`absolute rounded-2xl overflow-hidden shadow-2xl cursor-pointer transition-all duration-700 ease-out ${
-                      diff === 0
-                        ? "ring-2 ring-[#f2c06e] shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-                        : "ring-1 ring-white/10"
-                    }`}
+                    className={`absolute rounded-2xl overflow-hidden shadow-2xl cursor-pointer transition-all duration-700 ease-out ${diff === 0
+                      ? "ring-2 ring-[#f2c06e] shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+                      : "ring-1 ring-white/10"
+                      }`}
                     style={{
                       height: "92%",
                       aspectRatio: "0.666667",
