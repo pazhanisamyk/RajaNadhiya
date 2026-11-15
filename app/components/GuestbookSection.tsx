@@ -1,10 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BlessingRecord } from "../lib/types";
 import { SuggestedWishesModal } from "./SuggestedWishesModal";
 
 const DEFAULT_FALLBACK_BLESSINGS: BlessingRecord[] = [];
+
+function formatBlessingDate(isoOrDate?: string): string {
+  if (!isoOrDate) return "";
+  try {
+    const d = new Date(isoOrDate);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleString("en-US", {
+      month: "numeric",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "";
+  }
+}
 
 interface GuestbookSectionProps {
   initialBlessings: BlessingRecord[];
@@ -27,6 +46,24 @@ export function GuestbookSection({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+
+  // Restore user's own submitted blessings from localStorage across refreshes
+  useEffect(() => {
+    try {
+      const stored: BlessingRecord[] = JSON.parse(
+        localStorage.getItem("rn_guest_blessings") || "[]"
+      );
+      if (Array.isArray(stored) && stored.length > 0) {
+        setBlessings((prev) => {
+          const existingIds = new Set(prev.map((b) => b.id));
+          const toAdd = stored.filter(
+            (b) => b && b.id && (b.name || b.message) && !existingIds.has(b.id)
+          );
+          return [...toAdd, ...prev];
+        });
+      }
+    } catch {}
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,8 +89,28 @@ export function GuestbookSection({
         throw new Error("Failed to send blessing");
       }
 
-      const created: BlessingRecord = await res.json();
-      setBlessings((prev) => [created, ...prev]);
+      const data = await res.json();
+      const created: BlessingRecord = data.blessing || data;
+
+      if (created) {
+        const normalized: BlessingRecord = {
+          id: created.id || `local-${Date.now()}`,
+          name: created.name || cleanName,
+          message: created.message || cleanMsg,
+          createdAt: created.createdAt || new Date().toISOString(),
+          approved: Boolean(created.approved),
+          featured: Boolean(created.featured),
+        };
+
+        setBlessings((prev) => [normalized, ...prev]);
+
+        try {
+          const stored = JSON.parse(localStorage.getItem("rn_guest_blessings") || "[]");
+          const updated = [normalized, ...stored.filter((b: BlessingRecord) => b.id !== normalized.id)].slice(0, 10);
+          localStorage.setItem("rn_guest_blessings", JSON.stringify(updated));
+        } catch {}
+      }
+
       setName("");
       setMessage("");
       onNotify?.("Thank you! Your heartfelt wish has been received. 💐");
@@ -283,49 +340,43 @@ export function GuestbookSection({
               gap: "12px",
             }}
           >
-            {blessings.map((b) => (
-              <div
-                key={b.id || b.createdAt}
-                style={{
-                  borderRadius: "8px",
-                  border: "1px solid rgba(242, 192, 110, 0.35)",
-                  backgroundColor: "transparent",
-                  padding: "14px 16px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-                      fontWeight: 700,
-                      fontSize: "clamp(13px, 3.5vw, 15px)",
-                      color: "#f2c06e",
-                    }}
-                  >
-                    {b.name}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-                      fontSize: "clamp(11px, 2.8vw, 12px)",
-                      color: "rgba(242, 192, 110, 0.7)",
-                    }}
-                  >
-                    {new Date(b.createdAt).toLocaleString("en-US", {
-                      month: "numeric",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                      second: "2-digit",
-                      hour12: true,
-                    })}
-                  </span>
-                </div>
-                <p
+            {blessings
+              .filter((b) => b && (b.name || b.message))
+              .map((b) => (
+                <div
+                  key={b.id || b.createdAt}
                   style={{
-                    fontFamily: "var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-                    fontSize: "clamp(13px, 3.2vw, 14px)",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(242, 192, 110, 0.35)",
+                    backgroundColor: "transparent",
+                    padding: "14px 16px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+                        fontWeight: 700,
+                        fontSize: "clamp(13px, 3.5vw, 15px)",
+                        color: "#f2c06e",
+                      }}
+                    >
+                      {b.name}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+                        fontSize: "clamp(11px, 2.8vw, 12px)",
+                        color: "rgba(242, 192, 110, 0.7)",
+                      }}
+                    >
+                      {formatBlessingDate(b.createdAt)}
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+                      fontSize: "clamp(13px, 3.2vw, 14px)",
                     marginTop: "6px",
                     lineHeight: 1.5,
                     whiteSpace: "pre-wrap",

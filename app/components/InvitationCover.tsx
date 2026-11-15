@@ -7,6 +7,7 @@ interface InvitationCoverProps {
   bride?: string;
   dateDisplay?: string;
   onOpen?: () => void;
+  onDismissed?: () => void;
 }
 
 // 48 Celebratory flower shower particles for the ceremonial reveal
@@ -279,6 +280,7 @@ export function InvitationCover({
   bride = "Nadhiya",
   dateDisplay = "Sunday, 22 November 2026",
   onOpen,
+  onDismissed,
 }: InvitationCoverProps) {
   const [isDismissed, setIsDismissed] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
@@ -343,7 +345,6 @@ export function InvitationCover({
       window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      document.getElementById("top")?.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "start" });
     }
 
     // 1. Immediately trigger music on user interaction
@@ -381,8 +382,8 @@ export function InvitationCover({
         window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-        document.getElementById("top")?.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "start" });
       }
+      onDismissed?.();
     }, 1450);
   };
 

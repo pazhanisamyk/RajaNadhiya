@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       featured: false,
     });
 
-    return NextResponse.json({ blessing: record }, { status: 201 });
+    return NextResponse.json({ blessing: record, ...record }, { status: 201 });
   } catch (err) {
     console.error("[api/blessings POST]", err);
     return NextResponse.json(
