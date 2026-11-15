@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -94,14 +94,45 @@ export function AdminDashboard({
   const [adding, setAdding] = useState(false);
 
   const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [statusBanner, setStatusBanner] = useState<string | null>(null);
+
+  // Always open at top on reload / tab switch & prevent browser auto-restoring bottom scroll
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+
+    const resetScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    resetScroll();
+    requestAnimationFrame(resetScroll);
+    const t1 = setTimeout(resetScroll, 50);
+    const t2 = setTimeout(resetScroll, 200);
+
+    const onPageShow = () => resetScroll();
+    window.addEventListener("pageshow", onPageShow);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [authenticated, activeTab]);
 
   const flashBanner = useCallback((msg: string) => {
     setStatusBanner(msg);
     window.setTimeout(() => {
       setStatusBanner((prev) => (prev === msg ? null : prev));
-    }, 2800);
+    }, 3200);
   }, []);
 
   const loadAdminData = useCallback(async (): Promise<"ok" | "unauthorized" | "error"> => {
@@ -335,7 +366,12 @@ export function AdminDashboard({
 
   async function handleSaveSettings(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!isEditMode) {
+      flashBanner("Please switch to Edit Mode to modify settings.");
+      return;
+    }
     setSavingSettings(true);
+    setSettingsSaved(false);
     try {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
@@ -349,7 +385,9 @@ export function AdminDashboard({
       if (res.ok) {
         const data = (await res.json()) as { settings: SiteSettings };
         setSettings(data.settings);
-        flashBanner("Site settings saved to MongoDB");
+        setSettingsSaved(true);
+        setTimeout(() => setSettingsSaved(false), 3000);
+        flashBanner("Site settings saved successfully! ✓");
       } else {
         const errData = (await res.json().catch(() => null)) as { error?: string } | null;
         flashBanner(errData?.error || "Could not save site settings.");
@@ -835,6 +873,75 @@ export function AdminDashboard({
                               <X size={14} /> Cancel
                             </button>
                           </>
+                        ) : isConfirmingDelete ? (
+                          <div
+                            className="admin-delete-confirm-box"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: "8px",
+                              flexWrap: "wrap",
+                              width: "100%",
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              background: "rgba(185, 28, 28, 0.25)",
+                              border: "1px solid rgba(239, 68, 68, 0.6)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "12px",
+                                color: "#fca5a5",
+                                fontWeight: 600,
+                                marginRight: "auto",
+                              }}
+                            >
+                              Delete this blessing?
+                            </span>
+                            <button
+                              type="button"
+                              className="admin-action-btn"
+                              onClick={() => handleDelete(item.id)}
+                              disabled={isBusy}
+                              style={{
+                                background: "#dc2626",
+                                color: "#ffffff",
+                                borderColor: "#ef4444",
+                                fontWeight: 700,
+                                padding: "6px 14px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                boxShadow: "0 2px 10px rgba(220, 38, 38, 0.5)",
+                                cursor: isBusy ? "not-allowed" : "pointer",
+                              }}
+                              title="Permanently delete this blessing"
+                            >
+                              <Trash2 size={13} />
+                              <span>{isBusy ? "Deleting..." : "Confirm Delete"}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-action-btn"
+                              onClick={() => setConfirmDeleteId(null)}
+                              disabled={isBusy}
+                              style={{
+                                background: "rgba(242, 192, 110, 0.15)",
+                                color: "#f2c06e",
+                                borderColor: "rgba(242, 192, 110, 0.45)",
+                                padding: "6px 12px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                cursor: "pointer",
+                              }}
+                              title="Cancel deleting"
+                            >
+                              <X size={13} />
+                              <span>Cancel</span>
+                            </button>
+                          </div>
                         ) : (
                           <>
                             <button
@@ -882,26 +989,16 @@ export function AdminDashboard({
                             >
                               <Pencil size={14} /> Edit
                             </button>
-                            {isConfirmingDelete ? (
-                              <button
-                                type="button"
-                                className="admin-action-btn is-danger"
-                                onClick={() => handleDelete(item.id)}
-                                disabled={isBusy}
-                              >
-                                Confirm?
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="admin-action-btn is-danger-ghost"
-                                onClick={() => setConfirmDeleteId(item.id)}
-                                disabled={isBusy}
-                                aria-label="Delete blessing"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              className="admin-action-btn is-danger-ghost"
+                              onClick={() => setConfirmDeleteId(item.id)}
+                              disabled={isBusy}
+                              aria-label="Delete blessing"
+                              title="Delete blessing"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </>
                         )}
                       </div>
@@ -925,14 +1022,146 @@ export function AdminDashboard({
                     the live invitation page.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="secondary-button admin-btn-sm"
-                  onClick={() => setSettings(DEFAULT_SITE_SETTINGS)}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                  }}
                 >
-                  Reset Defaults
-                </button>
+                  <div
+                    role="group"
+                    aria-label="Form edit mode toggle"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "3px",
+                      borderRadius: "9999px",
+                      border: "1px solid rgba(242, 192, 110, 0.35)",
+                      background: "rgba(35, 2, 4, 0.5)",
+                      gap: "3px",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditMode(false);
+                        flashBanner("👁️ View Mode active — form is locked in read-only mode");
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        padding: "6px 14px",
+                        fontSize: "12px",
+                        fontWeight: !isEditMode ? 700 : 500,
+                        borderRadius: "9999px",
+                        border: "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        background: !isEditMode ? "#f2c06e" : "transparent",
+                        color: !isEditMode ? "#764c4d" : "#ffdfaf",
+                        boxShadow: !isEditMode ? "0 2px 8px rgba(0, 0, 0, 0.35)" : "none",
+                      }}
+                      title="View Mode: Form is read-only"
+                    >
+                      <Eye size={13} />
+                      <span>View Mode</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditMode(true);
+                        flashBanner("✏️ Edit Mode active — form is unlocked for editing");
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        padding: "6px 14px",
+                        fontSize: "12px",
+                        fontWeight: isEditMode ? 700 : 500,
+                        borderRadius: "9999px",
+                        border: "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        background: isEditMode ? "#f2c06e" : "transparent",
+                        color: isEditMode ? "#764c4d" : "#ffdfaf",
+                        boxShadow: isEditMode ? "0 2px 8px rgba(0, 0, 0, 0.35)" : "none",
+                      }}
+                      title="Edit Mode: Unlock form to edit and save"
+                    >
+                      <Pencil size={13} />
+                      <span>Edit Mode</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="secondary-button admin-btn-sm"
+                    disabled={!isEditMode}
+                    onClick={() => {
+                      if (!isEditMode) return;
+                      setSettings(DEFAULT_SITE_SETTINGS);
+                      flashBanner("Site settings reset to defaults (click Save to persist)");
+                    }}
+                    style={{
+                      opacity: !isEditMode ? 0.45 : 1,
+                      cursor: !isEditMode ? "not-allowed" : "pointer",
+                    }}
+                    title={
+                      !isEditMode
+                        ? "Enable Edit Mode to reset defaults"
+                        : "Reset settings to defaults"
+                    }
+                  >
+                    Reset Defaults
+                  </button>
+                </div>
               </div>
+
+              {!isEditMode ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "9px 14px",
+                    borderRadius: "8px",
+                    background: "rgba(242, 192, 110, 0.08)",
+                    border: "1px dashed rgba(242, 192, 110, 0.35)",
+                    color: "rgba(255, 223, 175, 0.9)",
+                    fontSize: "12.5px",
+                    margin: "12px 0 16px",
+                  }}
+                >
+                  <Lock size={14} style={{ color: "#f2c06e", flexShrink: 0 }} />
+                  <span>
+                    <strong style={{ color: "#f2c06e" }}>View Mode Active:</strong> Form fields are read-only to prevent accidental changes. Switch to <strong>Edit Mode</strong> above to modify event details.
+                  </span>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "9px 14px",
+                    borderRadius: "8px",
+                    background: "rgba(34, 197, 94, 0.12)",
+                    border: "1px solid rgba(134, 239, 172, 0.35)",
+                    color: "#86efac",
+                    fontSize: "12.5px",
+                    margin: "12px 0 16px",
+                  }}
+                >
+                  <Pencil size={14} style={{ flexShrink: 0 }} />
+                  <span>
+                    <strong>Edit Mode Active:</strong> You can edit any field below. Click <strong>Save Site Settings</strong> when you are ready.
+                  </span>
+                </div>
+              )}
 
               <div className="admin-form-grid">
                 <div className="blessing-field-group">
@@ -943,6 +1172,7 @@ export function AdminDashboard({
                     id="set-groom"
                     className="blessing-input"
                     value={settings.groom}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, groom: e.target.value }))
                     }
@@ -956,6 +1186,7 @@ export function AdminDashboard({
                     id="set-bride"
                     className="blessing-input"
                     value={settings.bride}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, bride: e.target.value }))
                     }
@@ -969,6 +1200,7 @@ export function AdminDashboard({
                     id="set-date-display"
                     className="blessing-input"
                     value={settings.dateDisplay}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, dateDisplay: e.target.value }))
                     }
@@ -982,6 +1214,7 @@ export function AdminDashboard({
                     id="set-time-display"
                     className="blessing-input"
                     value={settings.timeDisplay}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, timeDisplay: e.target.value }))
                     }
@@ -995,6 +1228,7 @@ export function AdminDashboard({
                     id="set-day"
                     className="blessing-input"
                     value={settings.dayDisplay}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, dayDisplay: e.target.value }))
                     }
@@ -1008,6 +1242,7 @@ export function AdminDashboard({
                     id="set-date-short"
                     className="blessing-input"
                     value={settings.dateShort}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, dateShort: e.target.value }))
                     }
@@ -1021,6 +1256,7 @@ export function AdminDashboard({
                     id="set-venue-name"
                     className="blessing-input"
                     value={settings.venueName}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, venueName: e.target.value }))
                     }
@@ -1034,6 +1270,7 @@ export function AdminDashboard({
                     id="set-locality"
                     className="blessing-input"
                     value={settings.venueLocality}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({
                         ...s,
@@ -1050,6 +1287,7 @@ export function AdminDashboard({
                     id="set-region"
                     className="blessing-input"
                     value={settings.venueRegion}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({
                         ...s,
@@ -1066,6 +1304,7 @@ export function AdminDashboard({
                     id="set-iso"
                     className="blessing-input"
                     value={settings.eventIso}
+                    readOnly={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({ ...s, eventIso: e.target.value }))
                     }
@@ -1074,10 +1313,16 @@ export function AdminDashboard({
               </div>
 
               <div className="admin-toggle-box">
-                <label className="admin-checkbox-label">
+                <label
+                  className="admin-checkbox-label"
+                  style={{
+                    cursor: isEditMode ? "pointer" : "default",
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={settings.showPublicBlessings}
+                    disabled={!isEditMode}
                     onChange={(e) =>
                       setSettings((s) => ({
                         ...s,
@@ -1094,34 +1339,231 @@ export function AdminDashboard({
               </div>
 
               <div className="blessing-field-group">
-                <span className="blessing-label">
-                  Quick-Pick Blessing Presets (shown in the popup)
-                </span>
-                <div className="admin-quick-list">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <span className="blessing-label" style={{ margin: 0 }}>
+                    Quick-Pick Blessing Presets (shown in the popup)
+                  </span>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={!isEditMode}
+                    onClick={() => {
+                      if (!isEditMode) return;
+                      setSettings((s) => ({
+                        ...s,
+                        quickBlessings: [
+                          ...s.quickBlessings,
+                          "Wishing you both endless love, joy, and togetherness! 💐✨",
+                        ],
+                      }));
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "6px 14px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      borderRadius: "9999px",
+                      border: "1px solid rgba(242, 192, 110, 0.45)",
+                      background: isEditMode
+                        ? "rgba(242, 192, 110, 0.15)"
+                        : "transparent",
+                      color: isEditMode ? "#f2c06e" : "rgba(255, 223, 175, 0.4)",
+                      cursor: isEditMode ? "pointer" : "not-allowed",
+                      opacity: isEditMode ? 1 : 0.45,
+                      transition: "all 0.2s",
+                    }}
+                    title={
+                      !isEditMode
+                        ? "Enable Edit Mode above to add presets"
+                        : undefined
+                    }
+                  >
+                    <Plus size={14} /> Add Blessing Preset
+                  </button>
+                </div>
+                <div
+                  className="admin-quick-list"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
                   {settings.quickBlessings.map((wish, idx) => (
-                    <input
+                    <div
                       key={idx}
-                      type="text"
-                      className="blessing-input"
-                      value={wish}
-                      onChange={(e) => {
-                        const next = [...settings.quickBlessings];
-                        next[idx] = e.target.value;
-                        setSettings((s) => ({ ...s, quickBlessings: next }));
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        width: "100%",
                       }}
-                    />
+                    >
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#f2c06e",
+                          minWidth: "24px",
+                          textAlign: "right",
+                        }}
+                      >
+                        {idx + 1}.
+                      </span>
+                      <input
+                        type="text"
+                        className="blessing-input"
+                        style={{ flex: 1 }}
+                        placeholder="Enter blessing preset message..."
+                        value={wish}
+                        readOnly={!isEditMode}
+                        onChange={(e) => {
+                          const next = [...settings.quickBlessings];
+                          next[idx] = e.target.value;
+                          setSettings((s) => ({ ...s, quickBlessings: next }));
+                        }}
+                      />
+                      <button
+                        type="button"
+                        title={
+                          !isEditMode
+                            ? "Enable Edit Mode to delete"
+                            : "Delete preset"
+                        }
+                        aria-label={`Delete preset ${idx + 1}`}
+                        disabled={!isEditMode}
+                        onClick={() => {
+                          if (!isEditMode) return;
+                          const next = settings.quickBlessings.filter(
+                            (_, i) => i !== idx
+                          );
+                          setSettings((s) => ({ ...s, quickBlessings: next }));
+                        }}
+                        style={{
+                          display: "grid",
+                          placeItems: "center",
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "8px",
+                          background: isEditMode
+                            ? "rgba(220, 38, 38, 0.15)"
+                            : "transparent",
+                          border: isEditMode
+                            ? "1px solid rgba(220, 38, 38, 0.4)"
+                            : "1px solid rgba(255, 255, 255, 0.1)",
+                          color: isEditMode
+                            ? "#fca5a5"
+                            : "rgba(255, 223, 175, 0.3)",
+                          cursor: isEditMode ? "pointer" : "not-allowed",
+                          opacity: isEditMode ? 1 : 0.4,
+                          flexShrink: 0,
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isEditMode) return;
+                          e.currentTarget.style.background =
+                            "rgba(220, 38, 38, 0.3)";
+                          e.currentTarget.style.borderColor = "#f87171";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isEditMode) return;
+                          e.currentTarget.style.background =
+                            "rgba(220, 38, 38, 0.15)";
+                          e.currentTarget.style.borderColor =
+                            "rgba(220, 38, 38, 0.4)";
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   ))}
+                  {settings.quickBlessings.length === 0 && (
+                    <p
+                      style={{
+                        color: "rgba(255, 223, 175, 0.65)",
+                        fontSize: "13px",
+                        fontStyle: "italic",
+                        margin: "8px 0",
+                      }}
+                    >
+                      No presets added yet. Click &ldquo;+ Add Blessing
+                      Preset&rdquo; above to add your first wish preset.
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="admin-settings-footer">
+              <div
+                className="admin-settings-footer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {!isEditMode && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "rgba(255, 223, 175, 0.65)",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Switch to Edit Mode above to modify and save settings
+                  </span>
+                )}
                 <button
                   type="submit"
                   className="primary-button"
-                  disabled={savingSettings}
+                  disabled={!isEditMode || savingSettings}
+                  style={
+                    !isEditMode
+                      ? {
+                        opacity: 0.45,
+                        cursor: "not-allowed",
+                        filter: "grayscale(40%)",
+                      }
+                      : settingsSaved
+                        ? {
+                          backgroundColor: "#f2c06e",
+                          borderColor: "#f2c06e",
+                          color: "#764c4d",
+                          boxShadow: "0 0 16px rgba(242, 192, 110, 0.6)",
+                        }
+                        : undefined
+                  }
+                  title={
+                    !isEditMode
+                      ? "Switch to Edit Mode above to enable saving"
+                      : undefined
+                  }
                 >
-                  <Save size={15} />{" "}
-                  {savingSettings ? "Saving Settings..." : "Save Site Settings"}
+                  {savingSettings ? (
+                    <>
+                      <RefreshCw size={15} className="animate-spin" /> Saving Settings...
+                    </>
+                  ) : settingsSaved ? (
+                    <>
+                      <Check size={16} /> Site Settings Saved! ✓
+                    </>
+                  ) : (
+                    <>
+                      <Save size={15} /> Save Site Settings
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -1200,6 +1642,38 @@ export function AdminDashboard({
                   </div>
                   <div className="admin-asset-card">
                     <Image
+                      src="/assets/qr/groom_upi_qr.jpeg"
+                      alt="Groom UPI QR"
+                      width={400}
+                      height={400}
+                      className="admin-asset-thumb"
+                    />
+                    <span>Groom QR (Raja)</span>
+                    <a
+                      href="/assets/qr/groom_upi_qr.jpeg"
+                      download="raja_engagement_qr.jpeg"
+                    >
+                      <Download size={12} /> Download
+                    </a>
+                  </div>
+                  <div className="admin-asset-card">
+                    <Image
+                      src="/assets/qr/bride_upi_qr.jpeg"
+                      alt="Bride UPI QR"
+                      width={400}
+                      height={400}
+                      className="admin-asset-thumb"
+                    />
+                    <span>Bride QR (Nadhiya)</span>
+                    <a
+                      href="/assets/qr/bride_upi_qr.jpeg"
+                      download="nadhiya_engagement_qr.jpeg"
+                    >
+                      <Download size={12} /> Download
+                    </a>
+                  </div>
+                  <div className="admin-asset-card">
+                    <Image
                       src="/engagement-invitation.png"
                       alt="Engagement Invitation"
                       width={1055}
@@ -1220,6 +1694,14 @@ export function AdminDashboard({
           </section>
         )}
       </div>
+
+      {/* Floating Action Toast Notification for all Admin Activities */}
+      {statusBanner && (
+        <div className="admin-floating-toast" role="status" aria-live="polite">
+          <Sparkles size={16} />
+          <span>{statusBanner}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,14 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     "May your bond grow stronger with every passing day! 🌸💫",
     "Heartiest congratulations on your beautiful beginning! 💐🤍",
     "May divine blessings always surround you both! 🙏✨",
+    "May you wake up smiling every morning, grateful to have each other. 💖",
+    "May you always find peace and happiness in each other's arms. 🕊️",
+    "May your love grow warmer, deeper, and more faithful with every year. 🌸",
+    "Here's to a married life that stays harmonious and strong forever. 🥂",
+    "Wishing Raja & Nadhiya a lifetime of deep joy, endless laughter, and true companionship. ✨",
+    "Two hearts, one soul. May your journey together be blessed with endless grace and happiness. 💍",
+    "இனிய நிச்சயதார்த்த நல்வாழ்த்துகள்! உங்கள் வாழ்க்கை என்றும் அன்பும் மகிழ்ச்சியும் நிறைந்ததாக அமையட்டும். 🌺",
+    "என்றும் இணைபிரியா தம்பதியராய் நூறாண்டு காலம் சீரோடும் சிறப்போடும் வாழ வாழ்த்துகிறோம்! 💐",
   ],
 };
 

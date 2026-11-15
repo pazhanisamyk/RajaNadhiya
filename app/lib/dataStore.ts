@@ -82,7 +82,7 @@ function normalizeSiteSettings(parsed: Partial<SiteSettings>): SiteSettings {
   const quick = Array.isArray(parsed.quickBlessings)
     ? parsed.quickBlessings
         .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-        .slice(0, 6)
+        .slice(0, 100)
     : DEFAULT_SITE_SETTINGS.quickBlessings;
 
   const groom = parsed.groom?.trim() || DEFAULT_SITE_SETTINGS.groom;
@@ -114,7 +114,7 @@ function mergeSiteSettings(
     ? patch.quickBlessings
         .map((q) => q.trim())
         .filter(Boolean)
-        .slice(0, 6)
+        .slice(0, 100)
     : current.quickBlessings;
 
   return {
@@ -153,16 +153,38 @@ async function readLocalSeedSettings(): Promise<SiteSettings> {
 }
 
 export async function readBlessings(): Promise<BlessingRecord[]> {
-  const db = await getMongoDb();
-  const docs = await db
-    .collection<BlessingRecord>(BLESSINGS_COLLECTION)
-    .find({}, { projection: { _id: 0 } })
-    .sort({ createdAt: -1 })
-    .toArray();
+  try {
+    const db = await getMongoDb();
+    const docs = await db
+      .collection<BlessingRecord>(BLESSINGS_COLLECTION)
+      .find({}, { projection: { _id: 0 } })
+      .sort({ createdAt: -1 })
+      .toArray();
 
-  return docs
-    .map(normalizeBlessing)
-    .filter((item): item is BlessingRecord => item !== null);
+    const normalized = docs
+      .map(normalizeBlessing)
+      .filter((item): item is BlessingRecord => item !== null);
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  } catch (err) {
+    console.error("[dataStore] MongoDB read failed, falling back to seed blessings:", err);
+  }
+
+  try {
+    const raw = await readFile(path.join(DATA_DIR, "blessings.json"), "utf8");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map(normalizeBlessing)
+        .filter((item): item is BlessingRecord => item !== null);
+    }
+  } catch {
+    // Ignore fallback read failure
+  }
+
+  return [];
 }
 
 export async function findBlessingsByIds(

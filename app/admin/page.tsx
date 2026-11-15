@@ -29,13 +29,20 @@ export default async function AdminPage() {
   const storageInfo = getStorageInfo();
 
   return (
-    <AdminDashboard
-      initialAuthenticated={authenticated}
-      initialBlessings={blessings}
-      initialSettings={settings}
-      storageMode={storageInfo.mode}
-      storageLabel={storageInfo.label}
-    />
+    <>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `if('scrollRestoration' in history){history.scrollRestoration='manual';}window.scrollTo(0,0);`,
+        }}
+      />
+      <AdminDashboard
+        initialAuthenticated={authenticated}
+        initialBlessings={blessings}
+        initialSettings={settings}
+        storageMode={storageInfo.mode}
+        storageLabel={storageInfo.label}
+      />
+    </>
   );
 }
 
