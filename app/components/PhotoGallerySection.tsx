@@ -238,7 +238,7 @@ export function PhotoGallerySection() {
           {/* Active Photo */}
           <img
             src={GALLERY_IMAGES[activeIdx]}
-            alt={`Raja & Nadhiya photo ${activeIdx + 1}`}
+            alt={`Krishnaraja & Nadhiya photo ${activeIdx + 1}`}
             style={{
               maxHeight: "min(68vh, 560px)",
               maxWidth: "calc(100% - 20px)",
@@ -506,7 +506,7 @@ export function PhotoGallerySection() {
                   >
                     <img
                       src={src}
-                      alt={`Raja & Nadhiya photo ${idx + 1}`}
+                      alt={`Krishnaraja & Nadhiya photo ${idx + 1}`}
                       className="h-full w-full object-cover"
                       loading={idx === 0 ? "eager" : "lazy"}
                       decoding="async"

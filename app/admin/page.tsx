@@ -10,7 +10,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Admin Panel | Raja & Nadhiya Engagement",
+  title: "Admin Panel | Krishnaraja & Nadhiya Engagement",
   robots: { index: false, follow: false },
 };
 

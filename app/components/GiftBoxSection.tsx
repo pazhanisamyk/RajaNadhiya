@@ -602,7 +602,7 @@ export function GiftBoxSection({ onNotify }: GiftBoxSectionProps) {
                       color: "#f2c06e",
                     }}
                   >
-                    Groom &bull; Raja
+                    Groom &bull; Krishnaraja
                   </span>
 
                   {/* QR Code Graphic Frame */}
@@ -630,7 +630,7 @@ export function GiftBoxSection({ onNotify }: GiftBoxSectionProps) {
                   {/* Save QR Button */}
                   <a
                     href="/assets/qr/groom_upi_qr.jpeg"
-                    download="raja_engagement_qr.jpeg"
+                    download="krishnarajaraja_engagement_qr.jpeg"
                     onClick={() => onNotify?.("Groom QR code downloaded!")}
                     style={{
                       marginTop: "14px",

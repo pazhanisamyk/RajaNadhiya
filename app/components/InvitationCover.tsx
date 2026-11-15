@@ -275,7 +275,7 @@ function FlowerParticleItem({ p }: { p: { type: string; size: number } }) {
 }
 
 export function InvitationCover({
-  groom = "Raja",
+  groom = "Krishnaraja",
   bride = "Nadhiya",
   dateDisplay = "Sunday, 22 November 2026",
   onOpen,

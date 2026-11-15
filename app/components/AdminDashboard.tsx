@@ -1648,7 +1648,7 @@ export function AdminDashboard({
                       height={400}
                       className="admin-asset-thumb"
                     />
-                    <span>Groom QR (Raja)</span>
+                    <span>Groom QR (Krishnaraja)</span>
                     <a
                       href="/assets/qr/groom_upi_qr.jpeg"
                       download="raja_engagement_qr.jpeg"

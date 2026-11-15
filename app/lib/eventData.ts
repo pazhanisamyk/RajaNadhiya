@@ -1,10 +1,10 @@
 import type { SiteSettings } from "./types";
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
-  couple: "Raja & Nadhiya",
-  groom: "Raja",
+  couple: "Krishnaraja & Nadhiya",
+  groom: "Krishnaraja",
   bride: "Nadhiya",
-  title: "Engagement Ceremony — Raja & Nadhiya",
+  title: "Engagement Ceremony — Krishnaraja & Nadhiya",
   dateDisplay: "Sunday, 22 November 2026",
   dayDisplay: "Sunday",
   dateShort: "22 November 2026",
@@ -25,7 +25,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     "May you always find peace and happiness in each other's arms. 🕊️",
     "May your love grow warmer, deeper, and more faithful with every year. 🌸",
     "Here's to a married life that stays harmonious and strong forever. 🥂",
-    "Wishing Raja & Nadhiya a lifetime of deep joy, endless laughter, and true companionship. ✨",
+    "Wishing Krishnaraja & Nadhiya a lifetime of deep joy, endless laughter, and true companionship. ✨",
     "Two hearts, one soul. May your journey together be blessed with endless grace and happiness. 💍",
     "இனிய நிச்சயதார்த்த நல்வாழ்த்துகள்! உங்கள் வாழ்க்கை என்றும் அன்பும் மகிழ்ச்சியும் நிறைந்ததாக அமையட்டும். 🌺",
     "என்றும் இணைபிரியா தம்பதியராய் நூறாண்டு காலம் சீரோடும் சிறப்போடும் வாழ வாழ்த்துகிறோம்! 💐",
@@ -75,10 +75,10 @@ export function downloadCalendarInvite(settings: SiteSettings = DEFAULT_SITE_SET
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Raja and Nadhiya//Engagement//EN",
+    "PRODID:-//Krishnaraja and Nadhiya//Engagement//EN",
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
-    "UID:raja-nadhiya-engagement-20261122@celebration.local",
+    "UID:krishnaraja-nadhiya-engagement-20261122@celebration.local",
     "DTSTAMP:20260101T000000Z",
     "DTSTART:20261122T080000Z",
     "DTEND:20261122T113000Z",
@@ -93,7 +93,7 @@ export function downloadCalendarInvite(settings: SiteSettings = DEFAULT_SITE_SET
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "Raja-and-Nadhiya-Engagement.ics";
+  link.download = "Krishnaraja-and-Nadhiya-Engagement.ics";
   link.click();
   URL.revokeObjectURL(url);
 }
