@@ -47,22 +47,115 @@ export function GuestbookSection({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Restore user's own submitted blessings from localStorage across refreshes
+  // Sync state whenever server initialBlessings update
   useEffect(() => {
-    try {
-      const stored: BlessingRecord[] = JSON.parse(
-        localStorage.getItem("rn_guest_blessings") || "[]"
-      );
-      if (Array.isArray(stored) && stored.length > 0) {
+    setBlessings(initialBlessings || []);
+  }, [initialBlessings]);
+
+  // Verify and sync any guest-submitted blessings against live MongoDB
+  useEffect(() => {
+    let isMounted = true;
+
+    async function syncGuestBlessings() {
+      try {
+        // Collect candidate IDs from either modern or legacy localStorage
+        let candidateIds: string[] = [];
+        const storedIdsRaw = localStorage.getItem("rn_guest_blessing_ids");
+        if (storedIdsRaw) {
+          try {
+            const parsed = JSON.parse(storedIdsRaw);
+            if (Array.isArray(parsed)) {
+              candidateIds = parsed.filter(
+                (id): id is string => typeof id === "string" && id.trim().length > 0
+              );
+            }
+          } catch {}
+        }
+
+        // Migrate or extract from legacy key if present
+        const legacyRaw = localStorage.getItem("rn_guest_blessings");
+        if (legacyRaw) {
+          try {
+            const parsed = JSON.parse(legacyRaw);
+            if (Array.isArray(parsed)) {
+              const legacyIds = parsed.map((b) => b?.id).filter(Boolean);
+              candidateIds = Array.from(new Set([...candidateIds, ...legacyIds]));
+            }
+          } catch {}
+          // Immediately purge the legacy key that blindly cached deleted records
+          localStorage.removeItem("rn_guest_blessings");
+        }
+
+        if (candidateIds.length === 0) {
+          localStorage.removeItem("rn_guest_blessing_ids");
+          return;
+        }
+
+        // Validate candidate IDs directly against the live database
+        const res = await fetch(
+          `/api/blessings?ids=${encodeURIComponent(candidateIds.join(","))}`,
+          { cache: "no-store" }
+        );
+
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        const liveBlessings: BlessingRecord[] = Array.isArray(data.blessings)
+          ? data.blessings
+          : [];
+
+        if (!isMounted) return;
+
+        // Any ID not returned by the server has been DELETED by the admin!
+        const liveIdSet = new Set(liveBlessings.map((b) => b.id));
+
+        // Update localStorage to ONLY keep IDs that actually exist in the database
+        const validIds = candidateIds.filter((id) => liveIdSet.has(id));
+        if (validIds.length > 0) {
+          localStorage.setItem("rn_guest_blessing_ids", JSON.stringify(validIds));
+        } else {
+          localStorage.removeItem("rn_guest_blessing_ids");
+        }
+
+        // Update blessings in state:
+        // 1. Remove any blessing whose ID was deleted by admin
+        // 2. Prepend any live pending blessing not already in initialBlessings
         setBlessings((prev) => {
-          const existingIds = new Set(prev.map((b) => b.id));
-          const toAdd = stored.filter(
-            (b) => b && b.id && (b.name || b.message) && !existingIds.has(b.id)
-          );
-          return [...toAdd, ...prev];
+          const candidateSet = new Set(candidateIds);
+          const cleaned = prev.filter((b) => {
+            if (candidateSet.has(b.id) && !liveIdSet.has(b.id)) {
+              return false; // Removed by admin!
+            }
+            return true;
+          });
+
+          const existingIds = new Set(cleaned.map((b) => b.id));
+          const toAdd = liveBlessings.filter((b) => !existingIds.has(b.id));
+
+          return [...toAdd, ...cleaned];
         });
+      } catch (err) {
+        console.error("[GuestbookSection] syncGuestBlessings error:", err);
       }
-    } catch {}
+    }
+
+    syncGuestBlessings();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncGuestBlessings();
+      }
+    };
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -92,9 +185,9 @@ export function GuestbookSection({
       const data = await res.json();
       const created: BlessingRecord = data.blessing || data;
 
-      if (created) {
+      if (created && created.id) {
         const normalized: BlessingRecord = {
-          id: created.id || `local-${Date.now()}`,
+          id: created.id,
           name: created.name || cleanName,
           message: created.message || cleanMsg,
           createdAt: created.createdAt || new Date().toISOString(),
@@ -102,12 +195,19 @@ export function GuestbookSection({
           featured: Boolean(created.featured),
         };
 
-        setBlessings((prev) => [normalized, ...prev]);
+        setBlessings((prev) => [
+          normalized,
+          ...prev.filter((b) => b.id !== normalized.id),
+        ]);
 
         try {
-          const stored = JSON.parse(localStorage.getItem("rn_guest_blessings") || "[]");
-          const updated = [normalized, ...stored.filter((b: BlessingRecord) => b.id !== normalized.id)].slice(0, 10);
-          localStorage.setItem("rn_guest_blessings", JSON.stringify(updated));
+          const storedIdsRaw = localStorage.getItem("rn_guest_blessing_ids");
+          const storedIds: string[] = storedIdsRaw ? JSON.parse(storedIdsRaw) : [];
+          const updatedIds = Array.from(
+            new Set([created.id, ...(Array.isArray(storedIds) ? storedIds : [])])
+          ).slice(0, 10);
+          localStorage.setItem("rn_guest_blessing_ids", JSON.stringify(updatedIds));
+          localStorage.removeItem("rn_guest_blessings");
         } catch {}
       }
 

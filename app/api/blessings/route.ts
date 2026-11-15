@@ -18,7 +18,10 @@ export async function GET(req: Request) {
         .map((id) => id.trim())
         .filter(Boolean);
       const owned = await findBlessingsByIds(ids);
-      return NextResponse.json({ blessings: owned });
+      return NextResponse.json(
+        { blessings: owned },
+        { headers: { "Cache-Control": "no-store, no-cache, max-age=0, must-revalidate" } }
+      );
     }
 
     const [blessings, settings] = await Promise.all([
@@ -28,7 +31,10 @@ export async function GET(req: Request) {
     const visible = settings.showPublicBlessings
       ? blessings.filter((item) => item.approved)
       : [];
-    return NextResponse.json({ blessings: visible });
+    return NextResponse.json(
+      { blessings: visible },
+      { headers: { "Cache-Control": "no-store, no-cache, max-age=0, must-revalidate" } }
+    );
   } catch (err) {
     console.error("[api/blessings GET]", err);
     return NextResponse.json(

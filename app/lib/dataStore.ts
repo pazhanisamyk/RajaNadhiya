@@ -165,9 +165,7 @@ export async function readBlessings(): Promise<BlessingRecord[]> {
       .map(normalizeBlessing)
       .filter((item): item is BlessingRecord => item !== null);
 
-    if (normalized.length > 0) {
-      return normalized;
-    }
+    return normalized;
   } catch (err) {
     console.error("[dataStore] MongoDB read failed, falling back to seed blessings:", err);
   }
@@ -193,16 +191,21 @@ export async function findBlessingsByIds(
   const cleaned = ids.map((id) => id.trim()).filter(Boolean).slice(0, 20);
   if (cleaned.length === 0) return [];
 
-  const db = await getMongoDb();
-  const docs = await db
-    .collection<BlessingRecord>(BLESSINGS_COLLECTION)
-    .find({ id: { $in: cleaned } }, { projection: { _id: 0 } })
-    .sort({ createdAt: -1 })
-    .toArray();
+  try {
+    const db = await getMongoDb();
+    const docs = await db
+      .collection<BlessingRecord>(BLESSINGS_COLLECTION)
+      .find({ id: { $in: cleaned } }, { projection: { _id: 0 } })
+      .sort({ createdAt: -1 })
+      .toArray();
 
-  return docs
-    .map(normalizeBlessing)
-    .filter((item): item is BlessingRecord => item !== null);
+    return docs
+      .map(normalizeBlessing)
+      .filter((item): item is BlessingRecord => item !== null);
+  } catch (err) {
+    console.error("[dataStore] findBlessingsByIds error:", err);
+    return [];
+  }
 }
 
 export async function addBlessing(input: {
